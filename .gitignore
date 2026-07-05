@@ -1,3 +1,11 @@
+*.db
+*.sqlite
+*.sqlite3
+
+data/raw/
+*.parquet
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -156,6 +164,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+hotspot-env/
 
 # Spyder project settings
 .spyderproject
