@@ -57,7 +57,34 @@ ORDER BY weighted blend of photogenicity × tag-match-count × suitability.
   Streamlit, Plotly) — consistent with Project A and with US tech recruiting.
 - **Secrets:** API keys via .env (git-ignored), .env.example committed as template.
 
-## Open decisions (TODO)
-- [ ] Finalize scenery vocabulary (lock the exact bucket list + the raw-tag → bucket mapping).
-- [ ] Finalize photogenicity weighting formula (relative weights of density,
-      engagement, rating; normalization approach — likely within-city like Project A).
+## Resolved decisions
+
+### Scenery vocabulary (locked)
+Seven buckets, stored as underscore tokens (enforced by CHECK in db/schema.sql):
+street, architecture, nature_parks, waterfront, temples_shrines, neon_nightlife, food.
+Disambiguation: neon_nightlife = illuminated night scenes; street = daytime urban.
+A location may hold several (many-to-many via location_tags).
+
+Tag mapping — Place type is primary where strong, Flickr tags fill the rest:
+- temples_shrines ← Place type place_of_worship  | tags: temple, shrine, torii, jinja, pagoda
+- nature_parks    ← Place type park              | tags: park, garden, sakura, momiji, pond
+- food            ← restaurant/cafe/market       | tags: food, ramen, sushi, izakaya, market
+- neon_nightlife  ← bar/night_club               | tags: neon, night, illumination, kabukicho
+- waterfront      ← (Flickr-led)                 | tags: river, bay, bridge, canal, sumida
+- architecture    ← (Flickr-led)                 | tags: architecture, building, tower, facade
+- street          ← (Flickr-led)                 | tags: street, alley, crossing, backstreet
+Note: Tokyo Flickr tags include Japanese romaji (sakura, torii, jinja) — mapping must include these.
+Top four buckets are Place-type-anchored (high precision); bottom three lean on noisier Flickr tags.
+
+### Photogenicity formula (locked)
+Within each city, per location (min 5 photos, else score = NULL):
+- density_n    = normalized log(1 + flickr_photo_count)
+- engagement_n = normalized median(favorites per photo)
+- rating_n     = normalized (google_rating / 5)
+- photogenicity = 0.30·density_n + 0.45·engagement_n + 0.25·rating_n
+
+Rationale: engagement weighted highest (quality signal, avoids rebuilding a crowd map);
+favorites not views (views are inflated), median not mean (resists one viral photo);
+density necessary but minority; Google rating lowest (measures "good to visit," not
+"good to shoot") but kept as an independent cross-check. Normalized within city so
+Tokyo's volume doesn't swamp smaller cities.
