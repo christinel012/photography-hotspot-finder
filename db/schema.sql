@@ -1,0 +1,8 @@
+-- Photography Hotspot Finder — database schema
+-- SQLite first (see docs/design.md). Standard SQL for portability to Postgres.
+--
+-- Tables (to be defined once scenery vocabulary + scoring formula are locked):
+--   locations          -- intrinsic core: one row per spot
+--   location_tags      -- many-to-many scenery tags
+--   location_timeslots -- derived time-of-day suitability
+--   conditions         -- contextual crowd/weather snapshots

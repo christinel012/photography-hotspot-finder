@@ -1,0 +1,17 @@
+# HTTP / API clients
+requests
+python-dotenv
+
+# Data handling
+pandas
+
+# Geospatial + sun position
+geopandas
+astral
+
+# App / visualization (later phase)
+streamlit
+plotly
+
+# Dev
+jupyter
