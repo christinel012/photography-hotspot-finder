@@ -29,6 +29,13 @@ Running log of decisions, data quirks, and things learned while building.
   → Replaced median(faves) with mean(log(1+faves)): only 21.6% zeros, clean spread
   (quartiles 0.05 / 0.43 / 1.39). Retains outlier-resistance via the log rather than
   via the median. Weights unchanged.
+- DBSCAN eps=100m chained across Tokyo's continuous density — top cluster spanned
+  3,771m (a district, not a spot). eps=50m fixed it: max extent ~1,028m, median 216m.
+  Cost: noise rose 14.9% -> 29.6%, which is acceptable (long tail of one-off snapshots).
+- Raw photo count is a broken density signal. Clusters with 700-1,000 photos from a
+  SINGLE owner exist (someone's home/workplace). Enthusiast niches (plane spotters
+  near Haneda) show 30-45 photos/owner. Genuine hotspots show 2-4 photos/owner across
+  hundreds of owners. → density must use unique_owners, not photo count.
 
 ## Scoring notes
 

@@ -79,8 +79,8 @@ Top four buckets are Place-type-anchored (high precision); bottom three lean on 
 ### Photogenicity formula (locked, revised after EDA)
 
 Within each city, per location (min 5 photos, else score = NULL):
-- density_n     = normalized log(1 + photo_count)
-- engagement_n  = normalized weighted mean of log(1 + favorites) per photo,
+- density_n     = normalized log(1 + unique_owners)
+- engagement_n  = normalized owner-averaged weighted mean of log(1 + favorites),
                   where each photo's weight = 0.5 ** (age_in_years / 5)
 - rating_n      = normalized (google_rating / 5)
 - photogenicity = 0.30·density_n + 0.45·engagement_n + 0.25·rating_n
@@ -118,6 +118,32 @@ doesn't out-score one with fewer recent ones. Preserves the quality-not-volume t
 Open question: the min-5-photos floor is now less meaningful, since 5 photos from 2012
 carry ~0.5 effective weight. A weighted minimum (Σw >= 3) may be better. Shipping the
 simple version first.
+
+REVISION 3 — photo_count → unique_owners in the density term.
+Clustering (DBSCAN, eps=50m, min_samples=20) surfaced clusters ranked by raw photo
+count that were not photogenic places at all:
+  - cluster 29:   1,005 photos, 1 owner
+  - cluster 1360:   955 photos, 1 owner
+  - cluster 1214:   752 photos, 1 owner
+  - clusters near Haneda / Tokyo Bay: 30-45 photos per owner (plane spotters)
+A single prolific uploader — or a small enthusiast group shooting one subject
+repeatedly — could rank above genuine hotspots. Raw photo count measures enthusiast
+obsession, not photogenicity.
+
+By contrast, clusters ranked by UNIQUE OWNERS surface recognizable Tokyo: Shinjuku,
+Ginza, Asakusa/Senso-ji, Roppongi — each with 400-900 distinct photographers at
+2-4 photos per owner. Many independent people choosing to photograph the same place
+IS the photogenicity signal.
+
+→ density = log(1 + unique_owners).
+
+Engagement is aggregated per-owner as well (average each owner's photos, then average
+across owners), so one photographer with 1,000 uploads cannot dominate a location's
+engagement score. One photographer, one vote.
+
+Post-clustering filter: require >= 10 distinct owners for a cluster to become a
+location. min_samples in DBSCAN counts photos, so a 20-photo/1-owner cluster would
+otherwise survive.
 
 ### Timestamp validity
 Flickr EXIF dates include junk (observed range 1870–2042). Timestamps outside
