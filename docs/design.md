@@ -76,15 +76,51 @@ Tag mapping — Place type is primary where strong, Flickr tags fill the rest:
 Note: Tokyo Flickr tags include Japanese romaji (sakura, torii, jinja) — mapping must include these.
 Top four buckets are Place-type-anchored (high precision); bottom three lean on noisier Flickr tags.
 
-### Photogenicity formula (locked)
+### Photogenicity formula (locked, revised after EDA)
+
 Within each city, per location (min 5 photos, else score = NULL):
-- density_n    = normalized log(1 + flickr_photo_count)
-- engagement_n = normalized median(favorites per photo)
-- rating_n     = normalized (google_rating / 5)
+- density_n     = normalized log(1 + photo_count)
+- engagement_n  = normalized weighted mean of log(1 + favorites) per photo,
+                  where each photo's weight = 0.5 ** (age_in_years / 5)
+- rating_n      = normalized (google_rating / 5)
 - photogenicity = 0.30·density_n + 0.45·engagement_n + 0.25·rating_n
 
-Rationale: engagement weighted highest (quality signal, avoids rebuilding a crowd map);
-favorites not views (views are inflated), median not mean (resists one viral photo);
-density necessary but minority; Google rating lowest (measures "good to visit," not
-"good to shoot") but kept as an independent cross-check. Normalized within city so
-Tokyo's volume doesn't swamp smaller cities.
+Rationale (unchanged): engagement weighted highest — it's the quality signal that
+stops the score from rebuilding a tourist-crowd map. Favorites not views (views are
+inflated by search traffic). Density necessary but minority. Google rating lowest —
+it measures "good to visit," not "good to shoot" — but kept as an independent
+cross-check Flickr dynamics can't game. Normalized within city so Tokyo's volume
+doesn't swamp smaller cities.
+
+REVISION 1 — median → mean of log(1+faves).
+Originally specified median(favorites per photo) as the outlier-resistant choice.
+EDA showed favorites are zero-inflated: 57% of individual photos have 0 faves, and
+the per-location median is 0 for 56.4% of locations. The median — the textbook robust
+statistic for skewed data — is useless on zero-inflated data: the highest-weighted
+term in the formula would have been a near-constant across most of the dataset.
+Replaced with mean of log(1+faves): 21.6% zeros, clean spread (quartiles 0.05 / 0.43
+/ 1.39). Outlier-resistance is now provided by the log transform rather than by the
+median — a single 5,000-fave photo contributes ~8.5, not 5,000.
+
+REVISION 2 — recency weighting on engagement.
+Photo dates span 2004–2026, peaking 2013–2017 (Flickr's own peak era), with ~46k
+photos from 2023+. Unweighted scoring would reflect a Tokyo that has partly changed.
+Applied exponential decay with a 5-year half-life to the engagement term only.
+
+Deliberately NOT applied to density: density measures "do people photograph here,"
+and a 2013 photo is genuine evidence of that — downweighting it would distort a count
+into something that isn't a count. Engagement measures "are photos here good," where
+recency legitimately matters.
+
+Weighted MEAN (divide by Σw), not weighted sum — so a location with many old photos
+doesn't out-score one with fewer recent ones. Preserves the quality-not-volume thesis.
+
+Open question: the min-5-photos floor is now less meaningful, since 5 photos from 2012
+carry ~0.5 effective weight. A weighted minimum (Σw >= 3) may be better. Shipping the
+simple version first.
+
+### Timestamp validity
+Flickr EXIF dates include junk (observed range 1870–2042). Timestamps outside
+2004–2026 are nulled (not dropped — the photo's coordinates, tags, and favorites
+remain valid for density and engagement; only time-of-day derivation excludes it).
+Affects 469 rows (0.18%).
