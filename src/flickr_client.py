@@ -23,17 +23,15 @@ API_URL = "https://api.flickr.com/services/rest/"
 RAW_DIR = Path("data/raw")
 
 # Flickr allows 3600 queries/hour = 1/sec. Stay well under.
-REQUEST_DELAY_SEC = 1.0
+REQUEST_DELAY_SEC = 0.5
 PER_PAGE = 250          # Flickr max is 500; 250 keeps responses manageable
 MAX_PAGES = 20          # safety cap per bbox tile
+MAX_RETRIES = 4
+BACKOFF_BASE_SEC = 2
 
 ## The search function
 def search_photos(bbox, page=1, min_upload_date=None):
-    """Query flickr.photos.search for geotagged photos in a bounding box.
-
-    bbox: "min_lng,min_lat,max_lng,max_lat"
-    Returns the parsed JSON response (one page of results).
-    """
+    """Query flickr.photos.search for geotagged photos in a bounding box."""
     params = {
         "method": "flickr.photos.search",
         "api_key": API_KEY,
@@ -49,9 +47,20 @@ def search_photos(bbox, page=1, min_upload_date=None):
     if min_upload_date:
         params["min_upload_date"] = min_upload_date
 
-    response = requests.get(API_URL, params=params, timeout=30)
-    response.raise_for_status()
-    data = response.json()
+    last_error = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = requests.get(API_URL, params=params, timeout=60)
+            response.raise_for_status()
+            data = response.json()
+            break
+        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as e:
+            last_error = e
+            wait = BACKOFF_BASE_SEC * (2 ** attempt)
+            print(f"  request failed ({type(e).__name__}), retrying in {wait}s...")
+            time.sleep(wait)
+    else:
+        raise RuntimeError(f"Flickr request failed after {MAX_RETRIES} attempts") from last_error
 
     if data.get("stat") != "ok":
         raise RuntimeError(f"Flickr API error: {data.get('message')}")
