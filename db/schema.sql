@@ -64,6 +64,7 @@ CREATE TABLE location_timeslots (
                  )),
     suitability  REAL    NOT NULL
                  CHECK (suitability BETWEEN 0 AND 1),
+    time_fit     REAL    NOT NULL,
     PRIMARY KEY (location_id, time_bucket)
 );
 

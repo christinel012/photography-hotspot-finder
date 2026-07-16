@@ -43,7 +43,7 @@ def load_city(city):
     tag_rows.to_sql("location_tags", conn, if_exists="append", index=False)
 
     # --- location_timeslots ---
-    slot_rows = slots.rename(columns={"cluster": "location_id"})[["location_id", "time_bucket", "suitability"]].copy()
+    slot_rows = slots.rename(columns={"cluster": "location_id"})[["location_id", "time_bucket", "suitability", "time_fit"]].copy()
     slot_rows["location_id"] = slot_rows["location_id"].astype(int)
     slot_rows = slot_rows[slot_rows.location_id.isin(loc_rows.location_id)]
     slot_rows.to_sql("location_timeslots", conn, if_exists="append", index=False)

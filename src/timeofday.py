@@ -84,8 +84,17 @@ def derive_timeslots(city):
     votes = votes.join(totals, on="cluster")
     votes["suitability"] = votes["weight_eff"] / votes["total"]
 
-    out = votes[["cluster", "bucket", "suitability"]].rename(columns={"bucket": "time_bucket"})
-    assert out.suitability.notna().all(), f"{out.suitability.isna().sum()} null suitabilities remain"
+    # Normalize against the citywide baseline share per bucket, so "good at golden
+    # hour" is measured relative to how rare golden hour is (7%) rather than on raw
+    # share (which always favors daytime at ~65%). time_fit > 1 => over-indexed.
+    bucket_totals = votes.groupby("bucket")["weight_eff"].sum()
+    baseline = bucket_totals / bucket_totals.sum()
+    votes["time_fit"] = votes["suitability"] / votes["bucket"].map(baseline)
+
+    out = votes[["cluster", "bucket", "suitability", "time_fit"]].rename(
+        columns={"bucket": "time_bucket"})
+    assert out.suitability.notna().all(), f"{out.suitability.isna().sum()} null suitabilities"
+    assert out.time_fit.notna().all(), f"{out.time_fit.isna().sum()} null time_fit"
     out.to_parquet(INTERIM_DIR / f"{city}_timeslots.parquet", index=False)
 
     print(f"\nTimeslot rows: {len(out)}")
