@@ -53,3 +53,28 @@ Running log of decisions, data quirks, and things learned while building.
 - Uniform 10x10 grid: many tiles saturate at the cap, meaning available photos exceed
   what one query can reach.
   → Candidate improvement: adaptive tiling (subdivide only saturated tiles).
+- Places API (New) Nearby Search with rankPreference=POPULARITY, radius=150m matches
+  cluster centroids to sensible POIs: top clusters -> Tokyo Metro Gov Building, Omoide
+  Yokocho, Nakamise, Shibuya Crossing, Ginza Station. Match distances 39-140m (centroids
+  land close to real POIs; 150m radius well-tuned).
+- Google 'types' skews to generic 'tourist_attraction' for famous spots — confirms types
+  alone can't fill scenery buckets; hybrid with Flickr tags needed. Some clusters match
+  stations/konbini (photogenic-adjacent, not photo spots) — retain types to flag later.
+
+
+
+- ~40% of enriched locations carry a transit type (transit_station 171, train_station
+  96, transportation_service 191, subway_station 21). Flickr geotags cluster at stations
+  (arrival points), but stations are rarely the photo subject. Google types can't tell a
+  photogenic historic station from a plain platform.
+  → Scenery tagging: Google types anchor park/temple/food/museum buckets cleanly (~half
+  the locations); station-typed and generic 'tourist_attraction' locations (~the other
+  half) must be bucketed from Flickr tags instead.
+  → Station type should DEFER to Flickr tags, not mark a location non-photogenic.
+
+- Scenery tagging: 296/502 locations get a scenery bucket; 206 are transit/commercial
+  (stations, malls, hotels) with no scenery signal from Google types OR owner-gated
+  Flickr tags -> tagged 'general', excluded from scenery filters.
+- Found type->bucket map gaps by spot-checking unbucketed locations against known Tokyo
+  photo spots: observation decks, art museums, tea houses, Budokan were being dropped.
+  Validating the pipeline output against ground truth caught what the aggregate stats hid.
