@@ -43,10 +43,24 @@ TYPE_KEYWORDS = {
 
 MIN_OWNERS_PER_BUCKET = 5   # distinct owners tagging a bucket keyword
 
+# Google types that clearly identify a NON-temple spot. If present, a Flickr
+# 'temples_shrines' tag is almost certainly neighborhood bleed (e.g. Nakamise
+# near Senso-ji), so suppress it unless Google also confirms worship.
+NON_TEMPLE_TYPES = {
+    "train_station", "subway_station", "transit_station", "shopping_mall",
+    "department_store", "zoo", "event_venue", "stadium", "hotel", "lodging",
+    "amusement_park", "movie_theater",
+}
+WORSHIP_TYPES = {"place_of_worship", "shinto_shrine", "buddhist_temple",
+                 "church", "mosque", "hindu_temple"}
+
 
 def assign_buckets(city):
     locs = pd.read_parquet(INTERIM_DIR / f"{city}_locations_enriched.parquet")
     locs["types"] = locs["types"].apply(lambda ts: list(ts) if ts is not None else [])
+
+    # cluster -> set of Google types, for type-precedence rules in the tag loop
+    types_by_cluster = {r.cluster: set(r.types) for r in locs.itertuples()}
 
     pc = pd.read_parquet(INTERIM_DIR / f"{city}_photo_clusters.parquet")
 
@@ -62,6 +76,13 @@ def assign_buckets(city):
                 if tags & keywords:
                     owners.add(row.owner)
             if len(owners) >= MIN_OWNERS_PER_BUCKET:
+                # Type-precedence: suppress a Flickr temple tag when Google says
+                # the spot is clearly something else (station, mall, zoo...) and
+                # does NOT confirm worship — it's neighborhood bleed, not a temple.
+                if bucket == "temples_shrines":
+                    loc_types = types_by_cluster.get(cluster, set())
+                    if (loc_types & NON_TEMPLE_TYPES) and not (loc_types & WORSHIP_TYPES):
+                        continue
                 bucket_rows.append({"cluster": cluster, "scenery_tag": bucket,
                                     "source": "flickr", "owner_support": len(owners)})
 

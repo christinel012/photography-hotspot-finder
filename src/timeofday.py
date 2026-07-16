@@ -73,13 +73,19 @@ def derive_timeslots(city):
     pc["elev"] = key.map(elev_map)
     pc["bucket"] = pc["elev"].apply(classify_elevation)
 
-    # Engagement-weighted vote per (cluster, bucket)
-    votes = pc.groupby(["cluster", "bucket"])["weight"].sum().reset_index()
-    totals = votes.groupby("cluster")["weight"].sum().rename("total")
+    # Engagement-weighted vote per (cluster, bucket), with fallback to equal
+    # weighting where a cluster has ~zero total engagement (all photos 0 faves).
+    pc["weight_eff"] = pc["weight"].fillna(0.0)
+    grp_total = pc.groupby("cluster")["weight_eff"].transform("sum")
+    pc.loc[grp_total < 1e-9, "weight_eff"] = 1.0   # threshold, not == 0
+
+    votes = pc.groupby(["cluster", "bucket"])["weight_eff"].sum().reset_index()
+    totals = votes.groupby("cluster")["weight_eff"].sum().rename("total")
     votes = votes.join(totals, on="cluster")
-    votes["suitability"] = votes["weight"] / votes["total"]
+    votes["suitability"] = votes["weight_eff"] / votes["total"]
 
     out = votes[["cluster", "bucket", "suitability"]].rename(columns={"bucket": "time_bucket"})
+    assert out.suitability.notna().all(), f"{out.suitability.isna().sum()} null suitabilities remain"
     out.to_parquet(INTERIM_DIR / f"{city}_timeslots.parquet", index=False)
 
     print(f"\nTimeslot rows: {len(out)}")

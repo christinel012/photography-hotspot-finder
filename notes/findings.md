@@ -78,3 +78,20 @@ Running log of decisions, data quirks, and things learned while building.
 - Found type->bucket map gaps by spot-checking unbucketed locations against known Tokyo
   photo spots: observation decks, art museums, tea houses, Budokan were being dropped.
   Validating the pipeline output against ground truth caught what the aggregate stats hid.
+
+- photo_clusters.parquet retains all 1,479 DBSCAN clusters; only 502 survived the
+  owner filter to become locations. Per-cluster aggregations must filter to valid
+  location clusters or they compute phantom rows (caught this in timeofday).
+
+
+- 4 locations had all-zero-favorite photos -> engagement weights summed to 0 ->
+  suitability = weight/0 = NaN. The schema's NOT NULL constraint on
+  location_timeslots.suitability caught this at load time. Fixed at source: fall
+  back to equal (count-based) weighting when a cluster's total engagement is zero.
+
+
+- Google-type precedence rule suppresses Flickr 'temple' tags on clearly non-worship
+  spots (stations, malls, zoo, event venues): temple-tagged 49 -> 40, all obvious false
+  positives removed. Two ambiguous stragglers remain (Omoide Yokocho, Metro Gov Building)
+  where Google type is generic (tourist_attraction/city_hall); left in rather than
+  broadening the suppression list and risking false negatives on real temples.

@@ -44,7 +44,8 @@ CREATE TABLE location_tags (
                      'waterfront',
                      'temples_shrines',
                      'neon_nightlife',   -- illuminated night scenes
-                     'food'
+                     'food',
+                     'general'
                  )),
     PRIMARY KEY (location_id, scenery_tag)
 );
