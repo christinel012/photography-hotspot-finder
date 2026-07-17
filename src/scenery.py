@@ -46,13 +46,23 @@ MIN_OWNERS_PER_BUCKET = 5   # distinct owners tagging a bucket keyword
 # Google types that clearly identify a NON-temple spot. If present, a Flickr
 # 'temples_shrines' tag is almost certainly neighborhood bleed (e.g. Nakamise
 # near Senso-ji), so suppress it unless Google also confirms worship.
-NON_TEMPLE_TYPES = {
-    "train_station", "subway_station", "transit_station", "shopping_mall",
-    "department_store", "zoo", "event_venue", "stadium", "hotel", "lodging",
-    "amusement_park", "movie_theater",
+# Station/transit Google types. When present, a Flickr scenery tag for a
+# bleed-prone bucket is likely neighborhood noise (people geotag street/temple
+# photos near the station they arrived at), so suppress it.
+STATION_TYPES = {
+    "train_station", "subway_station", "transit_station",
+    "transportation_service", "light_rail_station", "bus_station",
 }
+# Non-worship types that mean a Flickr 'temple' tag is bleed (malls, zoos, etc.).
+NON_TEMPLE_TYPES = {
+    "shopping_mall", "department_store", "zoo", "event_venue", "stadium",
+    "hotel", "lodging", "amusement_park", "movie_theater",
+} | STATION_TYPES
 WORSHIP_TYPES = {"place_of_worship", "shinto_shrine", "buddhist_temple",
                  "church", "mosque", "hindu_temple"}
+
+# Buckets prone to station neighborhood-bleed via Flickr tags.
+SUPPRESS_IF_STATION = {"street", "architecture"}
 
 
 def assign_buckets(city):
@@ -76,13 +86,14 @@ def assign_buckets(city):
                 if tags & keywords:
                     owners.add(row.owner)
             if len(owners) >= MIN_OWNERS_PER_BUCKET:
-                # Type-precedence: suppress a Flickr temple tag when Google says
-                # the spot is clearly something else (station, mall, zoo...) and
-                # does NOT confirm worship — it's neighborhood bleed, not a temple.
-                if bucket == "temples_shrines":
-                    loc_types = types_by_cluster.get(cluster, set())
-                    if (loc_types & NON_TEMPLE_TYPES) and not (loc_types & WORSHIP_TYPES):
-                        continue
+                loc_types = types_by_cluster.get(cluster, set())
+                # Type-precedence: suppress Flickr tags that are likely
+                # neighborhood bleed rather than a property of the spot itself.
+                if bucket == "temples_shrines" and (loc_types & NON_TEMPLE_TYPES) \
+                        and not (loc_types & WORSHIP_TYPES):
+                    continue
+                if bucket in SUPPRESS_IF_STATION and (loc_types & STATION_TYPES):
+                    continue
                 bucket_rows.append({"cluster": cluster, "scenery_tag": bucket,
                                     "source": "flickr", "owner_support": len(owners)})
 

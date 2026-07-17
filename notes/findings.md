@@ -87,3 +87,8 @@ Running log of decisions, data quirks, and things learned while building.
   (stations, malls, zoo, event venues): temple-tagged 49 → 40, obvious false positives
   removed. Two ambiguous stragglers (Omoide Yokocho, Metro Gov Building) left in rather
   than broadening the suppression list and risking false negatives on real temples.
+- Extended station-type suppression to street/architecture buckets: street 61→36,
+  architecture 193→165. Removed commuter stations from street results (were ~half the
+  top list). Residual bleed remains on non-station commercial venues (malls, zoo) and
+  photogenic temples that street photographers shoot around — accepted as a known limit
+  rather than adding per-type rules with diminishing returns.
