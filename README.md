@@ -2,7 +2,7 @@
 
 **A recommendation engine that tells photographers where to shoot in a city, ranked by what people *actually* photograph — not just what's popular.** You pick what you want to shoot (street, temples, waterfront…) and when (golden hour, blue hour, night…), and it returns ranked spots on a map. Built city-agnostic; launched with Tokyo.
 
-🔗 **Live app:** _coming soon (Streamlit Community Cloud)_
+🔗 **Live app:** https://shoot-here.streamlit.app/ (Streamlit Community Cloud)_
 📓 **Full design log:** [`docs/design.md`](docs/design.md) · [`notes/findings.md`](notes/findings.md)
 
 ---
