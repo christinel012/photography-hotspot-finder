@@ -27,7 +27,7 @@ GITHUB_URL = "https://github.com/christinel012/photography-hotspot-finder"
 GITHUB_PROFILE = "https://github.com/christinel012"
 LINKEDIN_URL = "https://www.linkedin.com/in/christineli012"
 EMAIL = "ytingli0210@gmail.com"
-PORTFOLIO_URL = GITHUB_PROFILE  # TODO: point to christineli.dev when live
+PORTFOLIO_URL = "https://christinel012.github.io/"
 
 SCENERY_LABELS = {
     "street": "Street", "architecture": "Architecture", "nature_parks": "Nature & parks",
